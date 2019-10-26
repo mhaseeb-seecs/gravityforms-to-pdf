@@ -1,7 +1,5 @@
 <?php
 
-GFForms::include_addon_framework();
-
 class GFPDFAddOn extends GFAddOn {
 
 	protected $_version = GF_PDF_ADDON_VERSION;
@@ -32,6 +30,8 @@ class GFPDFAddOn extends GFAddOn {
 	 */
 	public function init() {
 		parent::init();
+		add_action( 'gform_after_submission', array( $this, 'after_submission' ), 10, 2 );
+		add_action( 'gform_post_payment_action', array( $this, 'after_payment' ), 10, 2 );
 	}
 
 
@@ -79,7 +79,7 @@ class GFPDFAddOn extends GFAddOn {
 						'choices' => array(
 							array(
 								'label' => esc_html__( 'Enabled', 'gf_pdf_addon' ),
-								'name'  => 'enabled',
+								'name' => 'pdf_enabled'
 							),
 						),
 					),
@@ -138,7 +138,7 @@ class GFPDFAddOn extends GFAddOn {
 						'choices' => array(
 							array(
 								'label' => esc_html__( 'Enabled', 'gf_pdf_addon' ),
-								'name'  => 'enabled',
+								'name'  => 'page_number_enabled'
 							),
 						),
 					),
@@ -191,13 +191,132 @@ class GFPDFAddOn extends GFAddOn {
 		return array(
 			array(
 				'label' => esc_html__( 'Open Sans', 'gf_pdf_addon' ),
-				'value' => 'open-sans',
+				'value' => 'opensans',
 			),
 			array(
 				'label' => esc_html__( 'PT Serif', 'gf_pdf_addon' ),
-				'value' => 'pt-serif',
+				'value' => 'ptserif',
 			)
 		);
+	}
+
+	/**
+	 * Evaluate the conditional logic.
+	 *
+	 * @param array $form The form currently being processed.
+	 * @param array $entry The entry currently being processed.
+	 *
+	 * @return bool
+	 */
+	public function is_pdf_enabled( $form, $entry ) {
+		$settings = $this->get_form_settings( $form );
+
+		$name       = 'pdf_enabled';
+		$is_enabled = rgar( $settings, $name );
+
+		if ( $is_enabled ) {
+			return true;
+		}
+
+	}
+
+	/**
+	 * Generating PDF on form submission without payments.
+	 *
+	 * @param array $entry The entry currently being processed.
+	 * @param array $form The form currently being processed.
+	 */
+	public function after_submission( $entry, $form ) {
+
+		// Evaluate the rules configured for the custom_logic setting.
+		$result = $this->is_pdf_enabled( $form, $entry );
+
+		if ( $result && empty($entry['transaction_type']) && empty($entry['payment_status'])) {
+			$this->generate_pdf( $form, $entry );
+		}
+	}
+
+	/**
+	 * Generating PDF on form submission after payment is completed.
+	 *
+	 * @param array $entry The entry currently being processed.
+	 * @param array $form The form currently being processed.
+	 */
+	public function after_payment( $entry, $action ) {
+
+		// Evaluate the rules configured for the custom_logic setting.
+		$result = $this->is_pdf_enabled( $form, $entry );
+		if ( in_array( $action['type'], array( 'add_subscription_payment', 'complete_payment') ) ) {   
+			$form = GFAPI::get_form( $entry['form_id'] );
+			$this->generate_pdf( $form, $entry );
+		}
+	}
+
+	/**
+	 * Genreating PDF for the Form Entry
+	 * 
+	 * @return string PDF filepath for the form entry
+	 */
+	public function generate_pdf( $form, $entry ) {
+		
+		$filepath = $this->get_pdf_filepath( $entry );
+		$pdf = new GFPDFGenerator( $form, $entry, $filepath);
+		$pdf->save();
+
+		gform_update_meta( $entry['id'], 'pdf_addon_file', str_replace(ABSPATH, trailingslashit(get_bloginfo('url')) , $filepath) );
+		return $filepath;
+	}
+
+	/**
+	 * Get form upload directory
+	 * 
+	 * @return string Form directory path
+	 */
+	public function get_pdf_form_dir( $form_id ) {
+		$upload_dir   = wp_upload_dir();
+		$form_dir = $upload_dir['basedir'].'/gfpdf/'. $form_id;
+
+		if ( ! file_exists( $form_dir ) ) {
+			wp_mkdir_p( $form_dir );
+		}
+
+		return trailingslashit( $form_dir );
+	}
+	
+	/**
+	 * Get PDF file path
+	 * 
+	 * @return string PDF filepath for the entry
+	 */
+	public function get_pdf_filepath( $entry ) {
+		$form_dir = $this->get_pdf_form_dir( $entry['form_id'] );
+
+		return $form_dir . $entry['id'] . '.pdf';
+	}
+
+	public function get_entry_meta( $entry_meta, $form_id ) {
+		$entry_meta['pdf_addon_file']   = array(
+			'label' => 'PDF',
+			'is_numeric' => false,
+			'is_default_column' => true,
+			'update_entry_meta_callback' => array( $this, 'update_entry_meta' ),
+			'filter' => array( 'operators' => array( 'is' ))
+			);
+		return $entry_meta;
+	}
+
+	public function update_entry_meta( $key, $lead, $form ) {
+		return ''; 
+	}
+
+	public function debug() {
+		$args = func_get_args();
+		echo '<pre>';
+		foreach ($args as $index => $arg) {
+			print_r($arg);
+		}
+		echo '</pre>';
+		die('== GF PDF Debug ==');
 	}
 
 }

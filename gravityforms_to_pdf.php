@@ -15,7 +15,7 @@ define( 'GF_PDF_ADDON_URL', plugin_dir_url( __FILE__ ) );
 /**
  * Initiating & Registering Addon for Gravity Forms
  */
-add_action( 'gform_loaded', array( 'GF_PDF_AddOn_Init', 'load' ), 5 );
+add_action( 'gform_loaded', array( 'GF_PDF_AddOn_Init', 'load' ), 1);
 
 class GF_PDF_AddOn_Init {
 
@@ -24,9 +24,12 @@ class GF_PDF_AddOn_Init {
         if ( ! method_exists( 'GFForms', 'include_addon_framework' ) ) {
             return;
         }
-
-        require_once( GF_PDF_ADDON_PATH . 'inc/class-gfpdfaddon.php' );
-
+        
+        GFForms::include_addon_framework();
+        require_once( GF_PDF_ADDON_PATH . 'inc/class-GFPDFAddOn.php' );
+        require_once( GF_PDF_ADDON_PATH . 'inc/class-GFPDFGenerator.php' );
+        require_once( GF_PDF_ADDON_PATH . '/inc/vendor/autoload.php' );
+        
         GFAddOn::register( 'GFPDFAddOn' );
     }
 
@@ -40,3 +43,4 @@ class GF_PDF_AddOn_Init {
 function gf_pdf_addon() {
     return GFPDFAddOn::get_instance();
 }
+

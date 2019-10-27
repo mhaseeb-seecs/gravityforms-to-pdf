@@ -30,8 +30,11 @@ class GFPDFAddOn extends GFAddOn {
 	 */
 	public function init() {
 		parent::init();
-		add_action( 'gform_after_submission', array( $this, 'after_submission' ), 10, 2 );
-		add_action( 'gform_post_payment_action', array( $this, 'after_payment' ), 10, 2 );
+		add_action( 'gform_after_submission', array( $this, 'after_submission' ), 1, 2 );
+		add_action( 'gform_post_payment_action', array( $this, 'after_payment' ), 1, 2 );
+		add_filter( 'gform_pre_send_email', array( $this, 'notification_merge_tags' ), 10, 4 );
+		add_filter( 'gform_confirmation', array( $this, 'confirmation_merge_tags' ), 10, 4 );
+		
 	}
 
 
@@ -208,7 +211,7 @@ class GFPDFAddOn extends GFAddOn {
 	 *
 	 * @return bool
 	 */
-	public function is_pdf_enabled( $form, $entry ) {
+	public function is_pdf_enabled( $form ) {
 		$settings = $this->get_form_settings( $form );
 
 		$name       = 'pdf_enabled';
@@ -217,7 +220,13 @@ class GFPDFAddOn extends GFAddOn {
 		if ( $is_enabled ) {
 			return true;
 		}
+	}
 
+	public function is_feed_entry(  $entry ) {
+		if( empty($entry['transaction_type']) && empty($entry['payment_status']) )
+			return false;
+
+		return true;
 	}
 
 	/**
@@ -229,9 +238,9 @@ class GFPDFAddOn extends GFAddOn {
 	public function after_submission( $entry, $form ) {
 
 		// Evaluate the rules configured for the custom_logic setting.
-		$result = $this->is_pdf_enabled( $form, $entry );
+		$result = $this->is_pdf_enabled( $form );
 
-		if ( $result && empty($entry['transaction_type']) && empty($entry['payment_status'])) {
+		if ( $result && !$this->is_feed_entry( $entry ) ) {
 			$this->generate_pdf( $form, $entry );
 		}
 	}
@@ -245,7 +254,7 @@ class GFPDFAddOn extends GFAddOn {
 	public function after_payment( $entry, $action ) {
 
 		// Evaluate the rules configured for the custom_logic setting.
-		$result = $this->is_pdf_enabled( $form, $entry );
+		$result = $this->is_pdf_enabled( $form );
 		if ( in_array( $action['type'], array( 'add_subscription_payment', 'complete_payment') ) ) {   
 			$form = GFAPI::get_form( $entry['form_id'] );
 			$this->generate_pdf( $form, $entry );
@@ -263,7 +272,7 @@ class GFPDFAddOn extends GFAddOn {
 		$pdf = new GFPDFGenerator( $form, $entry, $filepath);
 		$pdf->save();
 
-		gform_update_meta( $entry['id'], 'pdf_addon_file', str_replace(ABSPATH, trailingslashit(get_bloginfo('url')) , $filepath) );
+		gform_update_meta( $entry['id'], 'pdf_addon_file', $this->get_pdf_url( $entry ) );
 		return $filepath;
 	}
 
@@ -282,7 +291,29 @@ class GFPDFAddOn extends GFAddOn {
 
 		return trailingslashit( $form_dir );
 	}
-	
+
+	/**
+	 * Get form upload directory url
+	 * 
+	 * @return string Form directory url
+	 */
+	public function get_pdf_form_dir_url( $form_id ) {
+		$upload_dir = wp_upload_dir();
+		$form_dir = $upload_dir['baseurl'] .'/gfpdf/'. $form_id;
+		return trailingslashit( $form_dir );
+	}
+
+	/**
+	 * Get pdf file url 
+	 * 
+	 * @return string pdf file url for the entry
+	 */
+	public function get_pdf_url( $entry ) {
+		$form_dir =  $this->get_pdf_form_dir_url( $entry['form_id'] );
+		return $form_dir . $entry['id'] . '.pdf';
+	}
+
+
 	/**
 	 * Get PDF file path
 	 * 
@@ -294,6 +325,11 @@ class GFPDFAddOn extends GFAddOn {
 		return $form_dir . $entry['id'] . '.pdf';
 	}
 
+	/**
+	 * PDF column for entries page 
+	 * 
+	 * @return array entry_meta array
+	 */
 	public function get_entry_meta( $entry_meta, $form_id ) {
 		$entry_meta['pdf_addon_file']   = array(
 			'label' => 'PDF',
@@ -305,10 +341,87 @@ class GFPDFAddOn extends GFAddOn {
 		return $entry_meta;
 	}
 
+	/**
+	 * Callback for the entry meta update
+	 * 
+	 * @return string
+	 */
 	public function update_entry_meta( $key, $lead, $form ) {
 		return ''; 
 	}
 
+	/**
+	 * filter hook for gform_pre_send_email
+	 * Merge Tags for the notifications send to the users
+	 * 
+	 * @return array email attributes
+	 */
+	public function notification_merge_tags(  $email, $message_format, $notification , $entry ) {
+
+		$pdf_url = gform_get_meta( rgar( $entry, 'id' ), 'pdf_addon_file'); 
+
+		$form = GFAPI::get_form( $entry['form_id'] );
+
+		if ( empty($pdf_url) && $this->is_pdf_enabled( $form ) && !$this->is_feed_entry( $entry )) {
+			$pdf_url = $this->get_pdf_url( $entry );
+		}
+
+		$customTags = [ 'pdf_url' => $pdf_url ];
+		
+		$email['message'] = $this->merge_tags( $email['message'], $customTags);
+
+		return $email;
+	}
+
+	/**
+	 * Filter hook for the confirmation messages 
+	 * For Merge tags replacement 
+	 * 
+	 * @return mixed confirmation array or message depends on settings
+	 */
+	public function confirmation_merge_tags( $confirmation, $form, $entry, $ajax ) {
+		$pdf_url = gform_get_meta( rgar( $entry, 'id' ), 'pdf_addon_file'); 
+
+		if ( empty($pdf_url) && $this->is_pdf_enabled( $form ) && !$this->is_feed_entry( $entry )) {
+			$pdf_url = $this->get_pdf_url( $entry );
+		}
+
+		$customTags = [ 'pdf_url' => $pdf_url ];
+		
+		$updatedText = is_array($confirmation) ? $confirmation['redirect'] :  $confirmation;
+		$updatedText = $this->merge_tags( $updatedText, $customTags);
+
+		if(is_array($confirmation))
+			$confirmation['redirect'] = $updatedText;
+		else
+			$confirmation = $updatedText;
+
+		return $confirmation;
+	}
+
+	/**
+	 * Merge Tags replacement for the PDF Addon
+	 * @param string original message with merge tags
+	 * @param array tags array with values to be replaced
+	 * 
+	 * @return string updated message with values
+	 */
+	private function merge_tags( $body, $tags) {
+		preg_match_all('/{(\w+)}/', $body, $matches);
+		$newBody = $body;
+
+		foreach ( $matches[0] as $index => $tag ) {
+			if (isset( $tags[$matches[1][$index]] )) {
+				$newBody = str_replace( $tag, $tags[$matches[1][$index]] , $newBody );
+			}
+		}
+		
+		return $newBody; 
+	}
+
+	/**
+	 * Custom debug function for testing
+	 */
 	public function debug() {
 		$args = func_get_args();
 		echo '<pre>';

@@ -217,12 +217,12 @@ class GFPDFGenerator {
         $customTags = $this->customMergeTags();
         
         foreach ( $matches[0] as $index => $tag ) {
-            if ( isset( $this->entry[$matches[1][$index]] ) ) {
-                $newHTML = str_replace( $tag, $this->entry[$matches[1][$index]] , $newHTML );
-            } else if (isset( $customTags[$matches[1][$index]] )) {
+            if (isset( $customTags[$matches[1][$index]] )) {
                 $newHTML = str_replace( $tag, $customTags[$matches[1][$index]] , $newHTML );
             }
         }
+
+        $newHTML = GFCommon::replace_variables( $newHTML, $this->form, $this->entry, false, false, false, 'html', array() );
         return $newHTML;
     }
 

@@ -81,6 +81,17 @@ class GFPDFAddOn extends GFAddOn {
 						'tab'        => 'gravityforms-to-pdf'
 					)
 				)
+			),
+			array(
+				'handle'  => 'gf_pdf_styles_css',
+				'src'     => GF_PDF_ADDON_URL . '/css/styles.css',
+				'version' => $this->_version,
+				'enqueue' => array(
+					array(
+						'admin_page' => array( 'form_settings' ),
+						'tab'        => 'gravityforms-to-pdf'
+					)
+				)
 			)
 		);
 
@@ -231,7 +242,8 @@ class GFPDFAddOn extends GFAddOn {
 	 * Used for Header, Footer and Content of PDF 
 	 */
 	public function settings_rich_text_field( $field, $echo = true){
-		wp_editor( $this->get_setting( $field['name'] ), '_gaddon_setting_' . $field['name'], array( 'autop' => false, 'editor_class' => 'merge-tag-support mt-wp_editor mt-manual_position mt-position-left' ) );
+		echo '<span class="mt-'. '_gaddon_setting_' . $field['name'].'"></span>';
+		wp_editor( $this->get_setting( $field['name'] ), '_gaddon_setting_' . $field['name'], array( 'autop' => false, 'editor_class' => 'merge-tag-support mt-wp_editor mt-manual_position mt-position-right' ) );
 	}
 	
 	/**

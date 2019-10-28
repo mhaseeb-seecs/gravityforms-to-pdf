@@ -1,0 +1,14 @@
+#wp-_gaddon_setting_header_text-wrap, 
+#wp-_gaddon_setting_footer_text-wrap,
+#wp-_gaddon_setting_pdf_content-wrap {
+	margin-right: 12px;
+}
+
+.mt-_gaddon_setting_header_text, 
+.mt-_gaddon_setting_footer_text,
+.mt-_gaddon_setting_pdf_content {
+	float: right;
+	position: relative;
+	right: 10px;
+	top: 90px;
+}

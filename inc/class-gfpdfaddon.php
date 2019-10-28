@@ -35,6 +35,10 @@ class GFPDFAddOn extends GFAddOn {
 		add_filter( 'gform_pre_send_email', array( $this, 'notification_merge_tags' ), 10, 4 );
 		add_filter( 'gform_confirmation', array( $this, 'confirmation_merge_tags' ), 10, 4 );
 		
+		//Tinymce Table Plugin
+		add_filter( 'mce_external_plugins', array( $this, 'mce_external_plugins' ), 999 );
+		add_filter( 'mce_buttons', array( $this, 'mce_buttons' ), 999 );
+		
 	}
 
 
@@ -57,10 +61,33 @@ class GFPDFAddOn extends GFAddOn {
 					)
 				)
 			),
-
 		);
 
 		return array_merge( parent::scripts(), $scripts );
+	}
+
+	/**
+	 * Filter for the tinymce external plugins
+	 * 
+	 * @param array of plugins for the tinymce
+	 * 
+	 * @return array modified array for the plugins
+	 */
+	public function mce_external_plugins($plugins) {
+		$plugins['table'] = GF_PDF_ADDON_URL . 'js/tinymce-table/plugin.min.js';
+		return $plugins;
+	}
+
+	/**
+	 * Buttons for External Plugins 
+	 * 
+	 * @param array of buttons
+	 * 
+	 * @param array modified array of buttons
+	 */
+	public function mce_buttons($buttons) {
+		array_push($buttons, 'separator', 'table');
+		return $buttons;
 	}
 
 

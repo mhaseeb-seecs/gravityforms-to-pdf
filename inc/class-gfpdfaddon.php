@@ -65,6 +65,28 @@ class GFPDFAddOn extends GFAddOn {
 
 		return array_merge( parent::scripts(), $scripts );
 	}
+	
+	/**
+	 * Return the stylesheets which should be enqueued.
+	 *
+	 * @return array
+	 */
+	public function styles() {
+		$styles = array(
+			array(
+				'handle'  => 'wp-color-picker',
+				'enqueue' => array(
+					array(
+						'admin_page' => array( 'form_settings' ),
+						'tab'        => 'gravityforms-to-pdf'
+					)
+				)
+			)
+		);
+
+		return array_merge( parent::styles(), $styles );
+	}
+
 
 	/**
 	 * Filter for the tinymce external plugins

@@ -193,6 +193,7 @@ class GFPDFGenerator {
      */
     private function maybeFormat( $html ) {
         $html = $this->merge_tags($html);
+        $html = do_shortcode($html);
         return wpautop( $html );
     }
 

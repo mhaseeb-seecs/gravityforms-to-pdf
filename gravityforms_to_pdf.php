@@ -26,7 +26,7 @@ class GF_PDF_AddOn_Init {
         }
         
         GFForms::include_addon_framework();
-        require_once( GF_PDF_ADDON_PATH . 'inc/class-GFPDFAddOn.php' );
+        require_once( GF_PDF_ADDON_PATH . 'inc/class-gfpdfaddon.php' );
         require_once( GF_PDF_ADDON_PATH . 'inc/class-GFPDFGenerator.php' );
         require_once( GF_PDF_ADDON_PATH . '/inc/vendor/autoload.php' );
         

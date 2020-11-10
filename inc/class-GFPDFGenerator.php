@@ -2,9 +2,9 @@
 
 class GFPDFGenerator {
 
-    private $pageSize = 'Letter';
-    private $mPDF, $form, $entry, $filepath;
-    private $filterPrefix = 'gfpdf_pdf_';
+    protected $pageSize = 'Letter';
+    protected $mPDF, $form, $entry, $filepath;
+    protected $filterPrefix = 'gfpdf_pdf_';
 
     public function __construct( $form , $entry, $path ) {
         $this->form = $form;
@@ -43,7 +43,7 @@ class GFPDFGenerator {
      * 
      * @return string html code for the header
      */
-    private function setHeader( $html ) {
+    protected function setHeader( $html ) {
         $html = $this->maybeFormat( $html );
         $html = apply_filters( $this->filter_tag( 'header_html' ) , $html );
 
@@ -55,7 +55,7 @@ class GFPDFGenerator {
      * 
      * @return string html code for the main PDF content
      */
-    private function setContent( $html ) {
+    protected function setContent( $html ) {
 
         $html = $this->maybeFormat( $html );
         $html = apply_filters( $this->filter_tag( 'content_html' ) , $html );
@@ -68,7 +68,7 @@ class GFPDFGenerator {
      * 
      * @return string html code for the footer
      */
-    private function setFooter( $html ) {
+    protected function setFooter( $html ) {
         $html = $this->maybeFormat( $html );
         $html = apply_filters( $this->filter_tag( 'footer_html' ) , $html );
 
@@ -88,7 +88,7 @@ class GFPDFGenerator {
      * 
      * @return string style code for the PDF
      */
-    private function addStyles() {
+    protected function addStyles() {
         $styles = '<style media="all">';
 
         //WP Editor Styles 
@@ -125,7 +125,7 @@ class GFPDFGenerator {
      * 
      * @return array font directory for initialization
      */
-    private function addFontDir() {
+    protected function addFontDir() {
         $defaultConfig = (new Mpdf\Config\ConfigVariables())->getDefaults();
         $fontDirs = $defaultConfig['fontDir'];
 
@@ -137,7 +137,7 @@ class GFPDFGenerator {
      * 
      * @return array font data for initialization
      */
-    private function addFontData() {
+    protected function addFontData() {
         $fonts = [
             "opensans" => [
                 'R' => "OpenSans-Regular.ttf",
@@ -166,7 +166,7 @@ class GFPDFGenerator {
      * 
      * @return string value for the setting
      */
-    private function getSetting( $name, $default = false ) {
+    protected function getSetting( $name, $default = false ) {
         if( isset( $this->form['gravityforms-to-pdf'][$name] ) )
             return $this->form['gravityforms-to-pdf'][$name];
 
@@ -180,7 +180,7 @@ class GFPDFGenerator {
      * 
      * @return string filter hook for extension / replacement 
      */
-    private function filter_tag( $tag ) {
+    protected function filter_tag( $tag ) {
         return $this->filterPrefix . $tag;
     }
 
@@ -191,13 +191,13 @@ class GFPDFGenerator {
      * 
      * @return string html code formatted and merged tags
      */
-    private function maybeFormat( $html ) {
+    protected function maybeFormat( $html ) {
         $html = $this->merge_tags($html);
         $html = do_shortcode($html);
         return wpautop( $html );
     }
 
-    private function customMergeTags() {
+    protected function customMergeTags() {
         return [
             'page_break' => '<pagebreak page-break-type="slice">'
         ];
@@ -211,7 +211,7 @@ class GFPDFGenerator {
      * 
      * @return string html code with the merged values
      */
-    private function merge_tags ( $html ) {
+    protected function merge_tags ( $html ) {
         preg_match_all('/{(\w+)}/', $html, $matches);
 
         $newHTML = $html;

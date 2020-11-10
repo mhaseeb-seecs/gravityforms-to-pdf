@@ -303,6 +303,7 @@ class GFPDFAddOn extends GFAddOn {
 
 		if ( $result && !$this->is_feed_entry( $entry ) ) {
 			$this->generate_pdf( $form, $entry );
+            $this->generate_word( $form, $entry );
 		}
 	}
 
@@ -314,10 +315,10 @@ class GFPDFAddOn extends GFAddOn {
 	 */
 	public function after_payment( $entry, $action ) {
 
+        $form = GFAPI::get_form( $entry['form_id'] );
 		// Evaluate the rules configured for the custom_logic setting.
 		$result = $this->is_pdf_enabled( $form );
-		if ( in_array( $action['type'], array( 'add_subscription_payment', 'complete_payment') ) ) {   
-			$form = GFAPI::get_form( $entry['form_id'] );
+		if (  $result && in_array( $action['type'], array( 'add_subscription_payment', 'complete_payment') ) ) {
 			$this->generate_pdf( $form, $entry );
 		}
 	}
@@ -336,6 +337,21 @@ class GFPDFAddOn extends GFAddOn {
 		gform_update_meta( $entry['id'], 'pdf_addon_file', $this->get_pdf_url( $entry ) );
 		return $filepath;
 	}
+
+    /**
+     * Genreating Word for the Form Entry
+     *
+     * @return string PDF filepath for the form entry
+     */
+    public function generate_word( $form, $entry ) {
+
+        $filepath = $this->get_word_filepath( $entry );
+        $word = new GFWordGenerator( $form, $entry, $filepath);
+        $word->save();
+
+        gform_update_meta( $entry['id'], 'pdf_addon_word_file', $this->get_word_url( $entry ) );
+        return $filepath;
+    }
 
 	/**
 	 * Get form upload directory
@@ -375,6 +391,16 @@ class GFPDFAddOn extends GFAddOn {
 	}
 
 
+    /**
+     * Get word file url
+     *
+     * @return string pdf file url for the entry
+     */
+    public function get_word_url( $entry ) {
+        $form_dir =  $this->get_pdf_form_dir_url( $entry['form_id'] );
+        return $form_dir . $entry['id'] . '.docx';
+    }
+
 	/**
 	 * Get PDF file path
 	 * 
@@ -385,6 +411,18 @@ class GFPDFAddOn extends GFAddOn {
 
 		return $form_dir . $entry['id'] . '.pdf';
 	}
+
+
+    /**
+     * Get Word file path
+     *
+     * @return string PDF filepath for the entry
+     */
+    public function get_word_filepath( $entry ) {
+        $form_dir = $this->get_pdf_form_dir( $entry['form_id'] );
+
+        return $form_dir . $entry['id'] . '.docx';
+    }
 
 	/**
 	 * PDF column for entries page 
@@ -399,6 +437,13 @@ class GFPDFAddOn extends GFAddOn {
 			'update_entry_meta_callback' => array( $this, 'update_entry_meta' ),
 			'filter' => array( 'operators' => array( 'is' ))
 			);
+        $entry_meta['pdf_addon_word_file']   = array(
+            'label' => 'Word',
+            'is_numeric' => false,
+            'is_default_column' => true,
+            'update_entry_meta_callback' => array( $this, 'update_entry_meta' ),
+            'filter' => array( 'operators' => array( 'is' ))
+        );
 		return $entry_meta;
 	}
 
@@ -419,15 +464,20 @@ class GFPDFAddOn extends GFAddOn {
 	 */
 	public function notification_merge_tags(  $email, $message_format, $notification , $entry ) {
 
-		$pdf_url = gform_get_meta( rgar( $entry, 'id' ), 'pdf_addon_file'); 
+		$pdf_url = gform_get_meta( rgar( $entry, 'id' ), 'pdf_addon_file');
+        $word_url = gform_get_meta( rgar( $entry, 'id' ), 'pdf_addon_word_file');
 
-		$form = GFAPI::get_form( $entry['form_id'] );
+        $form = GFAPI::get_form( $entry['form_id'] );
 
 		if ( empty($pdf_url) && $this->is_pdf_enabled( $form ) && !$this->is_feed_entry( $entry )) {
 			$pdf_url = $this->get_pdf_url( $entry );
 		}
 
-		$customTags = [ 'pdf_url' => $pdf_url ];
+        if ( empty($word_url) && $this->is_pdf_enabled( $form ) && !$this->is_feed_entry( $entry )) {
+            $word_url = $this->get_word_url( $entry );
+        }
+
+		$customTags = [ 'pdf_url' => $pdf_url, 'word_url' => $word_url ];
 		
 		$email['message'] = $this->merge_tags( $email['message'], $customTags);
 
@@ -441,13 +491,18 @@ class GFPDFAddOn extends GFAddOn {
 	 * @return mixed confirmation array or message depends on settings
 	 */
 	public function confirmation_merge_tags( $confirmation, $form, $entry, $ajax ) {
-		$pdf_url = gform_get_meta( rgar( $entry, 'id' ), 'pdf_addon_file'); 
+		$pdf_url = gform_get_meta( rgar( $entry, 'id' ), 'pdf_addon_file');
+        $word_url = gform_get_meta( rgar( $entry, 'id' ), 'pdf_addon_word_file');
 
 		if ( empty($pdf_url) && $this->is_pdf_enabled( $form ) && !$this->is_feed_entry( $entry )) {
 			$pdf_url = $this->get_pdf_url( $entry );
 		}
 
-		$customTags = [ 'pdf_url' => $pdf_url ];
+        if ( empty($word_url) && $this->is_pdf_enabled( $form ) && !$this->is_feed_entry( $entry )) {
+            $word_url = $this->get_word_url( $entry );
+        }
+
+        $customTags = [ 'pdf_url' => $pdf_url, 'word_url' => $word_url ];
 		
 		$updatedText = is_array($confirmation) ? $confirmation['redirect'] :  $confirmation;
 		$updatedText = $this->merge_tags( $updatedText, $customTags);

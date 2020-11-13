@@ -44,7 +44,7 @@ class GFWordGenerator extends GFPDFGenerator
         //Generate Footer Section
         htmltodocx_insert_html($footerSection, $this->footerNodes(), $initial_state);
         $this->maybeAddPageNumber($footerSection);
-        
+
         //Generate Content Section
         htmltodocx_insert_html($section, $this->contentNodes(), $initial_state);
 
@@ -310,6 +310,7 @@ class GFWordGenerator extends GFPDFGenerator
                 'td' => array(
                     'borderColor' => '000000',
                     'borderSize' => 10,
+                    'width' => 100*50
                 ),
             );
 
@@ -348,6 +349,15 @@ class GFWordGenerator extends GFPDFGenerator
                 ),
                 'vertical-align: right' => array(
                     'align' => 'right',
+                ),
+                'text-align: center' => array(
+                    'align' => 'center',
+                ),
+                'text-align: right' => array(
+                    'align' => 'right',
+                ),
+                'text-align: left' => array(
+                    'align' => 'left',
                 ),
             );
 

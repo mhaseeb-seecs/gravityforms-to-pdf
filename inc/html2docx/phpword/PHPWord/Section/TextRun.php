@@ -77,11 +77,12 @@ class PHPWord_Section_TextRun {
 	 * 
 	 * @var string $text
 	 * @var mixed $styleFont
+     * @var mixed $paragraphStyle
 	 * @return PHPWord_Section_Text
 	 */
-	public function addText($text = null, $styleFont = null) {
+	public function addText($text = null, $styleFont = null, $paragraphStyle = null) {
 		$givenText = utf8encode_dummy($text);
-		$text = new PHPWord_Section_Text($givenText, $styleFont);
+		$text = new PHPWord_Section_Text($givenText, $styleFont, $paragraphStyle);
 		$this->_elementCollection[] = $text;
 		return $text;
 	}

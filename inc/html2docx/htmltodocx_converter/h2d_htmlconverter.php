@@ -378,7 +378,15 @@ function htmltodocx_insert_html_recursive(&$phpword_element, $html_dom_array, &$
         $old_style = $state['current_style'];
 
         $state['current_style'] = _htmltodocx_get_style($element, $state);
-
+//
+//        print_r( $state['current_style']);
+//        echo PHP_EOL;
+//        print_r($element->tag);
+//        echo PHP_EOL;
+//        print_r($element->innertext);
+//        echo PHP_EOL;
+//        echo PHP_EOL;
+//        echo PHP_EOL;
         switch ($element->tag) {
 
             case 'p':
@@ -674,11 +682,17 @@ function htmltodocx_insert_html_recursive(&$phpword_element, $html_dom_array, &$
                 } else {
                     $text = htmltodocx_clean_text($element->innertext);
                 }
+                $palign = [];
+                if (isset($state['current_style']['align'])) {
+                    $palign['align'] = $state['current_style']['align'];
+                }
                 if (!empty($text)) {
                     if (!isset($state['textrun'])) {
-                        $state['textrun'] = $phpword_element->createTextRun();
+                        $state['textrun'] = $phpword_element->createTextRun($palign);
                     }
-                    $state['textrun']->addText($text, $state['current_style']);
+
+
+                    $state['textrun']->addText($text, $state['current_style'], $palign);
                 }
                 break;
 

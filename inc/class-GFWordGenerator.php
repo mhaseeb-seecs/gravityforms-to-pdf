@@ -113,7 +113,7 @@ class GFWordGenerator extends GFPDFGenerator
         $page_number = $this->getSetting('page_number_enabled');
 
         if($page_number) {
-            $footer->addPreserveText('Page {PAGE} of {NUMPAGES}.', null, array('align' => $this->getSetting('page_number_alignment', 'center') ));
+            $footer->addPreserveText('Page {PAGE} of {NUMPAGES}', null, array('align' => $this->getSetting('page_number_alignment', 'center') ));
         }
 
 
@@ -330,6 +330,15 @@ class GFWordGenerator extends GFPDFGenerator
                 ),
                 'green' => array(
                     'color' => '00A500',
+                ),
+                'aligncenter' => array(
+                    'align' => 'center',
+                ),
+                'alignright' => array(
+                    'align' => 'right',
+                ),
+                'alignleft' => array(
+                    'align' => 'left',
                 ),
             );
 
